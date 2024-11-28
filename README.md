@@ -1,0 +1,1 @@
+This repository contains implementations of subgradient methods as part of my CPSC536M course project. 

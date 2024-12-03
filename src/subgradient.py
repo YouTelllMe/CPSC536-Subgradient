@@ -13,7 +13,7 @@ class SubgradientDescent:
     """
     Class for Basic Subgradient Method
     """
-
+    
     def __init__(self, 
                  x0: np.ndarray,
                  stepstyle: Step,
@@ -23,15 +23,18 @@ class SubgradientDescent:
         self.iterations = 0
         self.f = f
         self.objectives = np.array([])
+        self.min_obj = self.get_objective()
 
     def iterate(self, gk: np.ndarray, alphak: float):
         """
-            gk: is a subgradient direction
-            alphak: stepsize > 0
+        gk: is a subgradient direction
+        alphak: stepsize > 0
         """
         self.iterations += 1
         self.xcur = self.xcur - alphak * gk
-        np.append(self.objectives, self.get_objective())
+        curr_objective = self.get_objective()
+        self.min_obj = min(self.min_obj, curr_objective)
+        np.append(self.objectives, curr_objective)
 
     def get_objective(self):
         return self.f(self.xcur)

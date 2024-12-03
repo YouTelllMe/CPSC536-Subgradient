@@ -13,39 +13,62 @@ class SubgradientDescent:
     """
     Class for Basic Subgradient Method
     """
-    
+
     def __init__(self, 
                  x0: np.ndarray,
                  stepstyle: Step,
-                 f):
-        self.xcur = x0
+                 f, 
+                 maxit: int = 1000):
+        self.xcur = np.array(x0)
         self.stepstyle = stepstyle
         self.iterations = 0
         self.f = f
-        self.objectives = np.array([])
+        self.maxit = maxit
+
         self.min_obj = self.get_objective()
+        self.objectives = np.array([self.min_obj])
+        self.terminated = False
 
     def iterate(self, gk: np.ndarray, alphak: float):
         """
         gk: is a subgradient direction
         alphak: stepsize > 0
         """
-        self.iterations += 1
-        self.xcur = self.xcur - alphak * gk
-        curr_objective = self.get_objective()
-        self.min_obj = min(self.min_obj, curr_objective)
-        np.append(self.objectives, curr_objective)
+        gk = np.array(gk)
+        if (not self.terminated):
+            self.iterations += 1
+            self.xcur = self.xcur - alphak * gk
+            curr_objective = self.get_objective()
+            self.min_obj = min(self.min_obj, curr_objective)
+            self.objectives = np.append(self.objectives, curr_objective)
+            self.print_statistics()
 
-    def get_objective(self):
-        return self.f(self.xcur)
+            if self.iterations > self.maxit:
+                self.terminated = True
+                self.plot()
+
+    def run(self, gk: np.ndarray, alphak: float):
+        gk = np.array(gk)
+        self.print_statistics()
+        for _ in range(self.maxit):
+            # try: 
+            self.iterate(gk, alphak)
+            # except Exception as error:
+            #     print(error)
 
     def print_statistics(self):
-        print("Hello!")
+        print(f"It {self.iterations} | Current Objective: {self.objectives[-1]}, Best Objective: {self.min_obj}")
 
     def plot(self):
         plt.figure()
         plt.plot(range(self.iterations), self.objectives)
         plt.savefig("plot.png")
+
+    def get_objective(self):
+        return self.f(self.xcur)
+    
+    def get_min_objective(self):
+        return self.f(self.min_obj)
 
 class ProjectedSubgradientDescent(SubgradientDescent):
     def __init__(self, x0, stepstyle, f):
@@ -54,5 +77,4 @@ class ProjectedSubgradientDescent(SubgradientDescent):
 class StochasticSubgradientDescent(SubgradientDescent):
     def __init__(self, x0, stepstyle, f):
         super().__init__(x0, stepstyle, f)
-
 

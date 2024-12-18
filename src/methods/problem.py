@@ -6,6 +6,8 @@ A_PATH = "A_4x100.txt"
 P_PATH = "P_4x100.txt"
 N = 4
 M = 100
+X0 = np.zeros(N)
+MAX_ITERATION = 100 # multiples of N
 t_bar = 0.5
 
 # SETS UP A, P, T

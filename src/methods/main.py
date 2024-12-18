@@ -2,17 +2,13 @@ from incremental_subgradient import IncrementalSubgradient
 from modified_subgradient import ModifiedSubgradient
 from subgradient import Subgradient
 import numpy as np
-from problem import N
+from problem import N, X0, MAX_ITERATION
 from helpers import Step
 import matplotlib.pyplot as plt
 
 
 
 if __name__ == "__main__":
-    X0 = np.zeros(N)
-    MAX_ITERATION = 100 # multiples of N
-    S = MAX_ITERATION
-
     subgradient_const = Subgradient(X0, Step.CONSTANT_SIZE, MAX_ITERATION, 3300)
     subgradient_polyak = Subgradient(X0, Step.POLYAK, MAX_ITERATION, 3300)
     subgradient_dim = Subgradient(X0, Step.SQAURE_SUMMABLE_NON_SUMMABLE, MAX_ITERATION, 3300)

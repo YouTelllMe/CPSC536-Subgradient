@@ -1,80 +1,92 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from enum import Enum, auto
+from helpers import Step, proj_pos_orthant, diminishing_step, constant_length, constant_size, polyak_step, polyak_step_est
+from problem import N, M, f_i, g_i, f
 
-class Step(Enum): 
-    CONSTANT_SIZE = auto() # constant step; some α
-    CONSTANT_LENGTH = auto() # constant step normalized; some α/||gk||. Then ||x_(k+1)-xk|| = α (?)
-    SQAURE_SUMMABLE_NON_SUMMABLE = auto() # αk >= 0, square summable (finite), not summable (diverge / infinite). Ex: α / (b+k) where a > 0, b >= 0
-    NON_SUMMABLE_DIMINISHING_SIZE = auto() # αk >= 0, limit of ak to 0, not summable (diverge / infinite). Ex: α / sqrt(k)
-    NON_SUMMABLE_DIMINISHING_LENGTH = auto() # step is αk / ||gk|| where αk >= 0, limit is 0, not summable (diverge / infinite).
-
-class SubgradientDescent:
+class Subgradient:
     """
-    Class for Basic Subgradient Method
+    Class for Basic Subgradient Method. Note this implementation is solving a MAX problem, so we add the subgradient instead. 
     """
 
     def __init__(self, 
                  x0: np.ndarray,
                  stepstyle: Step,
-                 f, 
-                 maxit: int = 1000):
-        self.xcur = np.array(x0)
+                 maxit: int = 1000,
+                 optimal_val: float = None, 
+                 S: int = 5):
+        """
+        S is how many iterations of consecutive nondescent (or nonascent) direction before returning to best x.
+        """
+        self.x_cur = np.array(x0)
         self.stepstyle = stepstyle
         self.iterations = 0
-        self.f = f
         self.maxit = maxit
+        self.optimal_val = optimal_val
+        self.S = S 
 
-        self.min_obj = self.get_objective()
-        self.objectives = np.array([self.min_obj])
-        self.terminated = False
+        self.best_obj = f(self.x_cur)
+        self.x_best = self.x_cur
+        self.objectives = []
 
-    def iterate(self, gk: np.ndarray, alphak: float):
+
+    def iterate(self):
         """
-        gk: is a subgradient direction
-        alphak: stepsize > 0
+        Problem Specific Iteration.
         """
-        gk = np.array(gk)
-        if (not self.terminated):
-            self.iterations += 1
-            self.xcur = self.xcur - alphak * gk
-            curr_objective = self.get_objective()
-            self.min_obj = min(self.min_obj, curr_objective)
-            self.objectives = np.append(self.objectives, curr_objective)
-            self.print_statistics()
+        cur_obj = 0
+        subgradient = np.zeros(N)
+        for i in range(M):
+            obj_i, min_ij = f_i(self.x_cur, i)
+            subgradient += g_i(i, min_ij)
+            cur_obj += obj_i
 
-            if self.iterations > self.maxit:
-                self.terminated = True
-                self.plot()
+        # update and store objective
+        if (cur_obj > self.best_obj):
+            self.best_obj = cur_obj
+            self.x_best = self.x_cur
+        self.objectives.append(cur_obj)
 
-    def run(self, gk: np.ndarray, alphak: float):
-        gk = np.array(gk)
-        self.print_statistics()
+        self.x_cur = proj_pos_orthant(self.x_cur + self.get_step(subgradient))
+        return cur_obj
+
+    def run(self):
+        obj_prev = -np.inf
+        self.x_best = self.x_cur
+        s_counter = 0
+
         for _ in range(self.maxit):
-            # try: 
-            self.iterate(gk, alphak)
-            # except Exception as error:
-            #     print(error)
+            self.iterations += 1
+            cur_obj = self.iterate()
+            # count if decreasing 
+            if (obj_prev > cur_obj): 
+                s_counter += 1
+            else:
+                s_counter = 0
+            # if decreasing consecutively, reset
+            if s_counter > self.S:
+                self.x_cur = self.x_best
+                s_counter = 0
+            obj_prev = cur_obj
+
+    def get_step(self, subgradient):
+        """
+        Note: Polyak style steps don't work for incremental methods (go in circles). The paper suggests a fix which hasn't been implemented. 
+        Note: Polyak step uses best current, so make sure that's updated before this is called
+        """
+        if self.stepstyle == Step.SQAURE_SUMMABLE_NON_SUMMABLE:
+            return (diminishing_step(self.iterations)*subgradient)
+        elif self.stepstyle == Step.CONSTANT_LENGTH:
+            return (constant_length(self.iterations)*subgradient)
+        elif self.stepstyle == Step.CONSTANT_SIZE:
+            return (constant_size(self.iterations, subgradient)*subgradient)
+        elif self.stepstyle == Step.POLYAK and self.optimal_val is None: 
+            return (polyak_step_est(self.iterations, f(self.x_cur), self.best_obj, subgradient)*subgradient)
+        elif self.stepstyle == Step.POLYAK and self.optimal_val is not None: 
+            return (polyak_step(self.iterations, self.optimal_val, self.best_obj, subgradient)*subgradient)
+        else: 
+            raise Exception("Step is not handled.")
 
     def print_statistics(self):
-        print(f"It {self.iterations} | Current Objective: {self.objectives[-1]}, Best Objective: {self.min_obj}")
+        print(f"It {self.iterations} | Current Objective: {self.objectives[-1]}, Best Objective: {self.best_obj}, Current x: {self.x_cur}")
 
-    def plot(self):
-        plt.figure()
-        plt.plot(range(self.iterations), self.objectives)
-        plt.savefig("plot.png")
-
-    def get_objective(self):
-        return self.f(self.xcur)
     
-    def get_min_objective(self):
-        return self.f(self.min_obj)
-
-class ProjectedSubgradientDescent(SubgradientDescent):
-    def __init__(self, x0, stepstyle, f):
-        super().__init__(x0, stepstyle, f)
-
-class StochasticSubgradientDescent(SubgradientDescent):
-    def __init__(self, x0, stepstyle, f):
-        super().__init__(x0, stepstyle, f)
-

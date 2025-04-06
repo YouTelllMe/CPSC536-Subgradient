@@ -1,4 +1,4 @@
-This repository contains implementations of subgradient methods as part of my CPSC536M course project. https://www.overleaf.com/read/mvcrmbysphmd#e907a1. 
+This repository contains implementations of subgradient methods as part of my CPSC536M course project. [https://www.overleaf.com/read/mvcrmbysphmd#e907a1](https://www.overleaf.com/read/mvcrmbysphmd#e907a1). 
 
 ### Build 
 Initialize a virtual environment with an appropriate Python version. This project was ran with Python 3.10.10 and the following instructions is for MacOS. Thus, it's recommended that a Python version > 3.10.10 is used. In the root 
